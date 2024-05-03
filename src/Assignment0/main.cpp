@@ -3,6 +3,18 @@
 #include<eigen3/Eigen/Dense>
 #include<iostream>
 
+void Rotate(float radian, Eigen::Vector3f Move, Eigen::Vector3f v)
+{
+    Eigen::Matrix3f r;
+    r << std::cos(radian), -std::sin(radian), Move[0]
+        , std::sin(radian), std::cos(radian), Move[1]
+        , 0, 0, 1;
+
+    std::cout << "Rotate:" << radian<< std::endl;
+    std::cout << Move[0]  << "  " << Move[1] << std::endl;
+    std::cout << r * v << std::endl;
+}
+
 int main(){
 
     // Basic Example of cpp
@@ -34,7 +46,10 @@ int main(){
     std::cout << "Example of matrix \n";
     // matrix definition
     Eigen::Matrix3f i,j;
-    i << 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0;
+    i << 1.0, 2.0, 3.0
+        ,4.0, 5.0, 6.0
+        ,7.0, 8.0, 9.0;
+
     j << 2.0, 3.0, 1.0, 4.0, 6.0, 5.0, 9.0, 7.0, 8.0;
     // matrix output
     std::cout << "Example of output \n";
@@ -44,5 +59,6 @@ int main(){
     // matrix multiply i * j
     // matrix multiply vector i * v
 
+    Rotate(45.0/180.0*acos(-1), {1,2,1}, {2,1,1});
     return 0;
 }
