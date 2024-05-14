@@ -80,7 +80,8 @@ namespace rst
         void rasterize_triangle(const Triangle& t);
 
         // VERTEX SHADER -> MVP -> Clipping -> /.W -> VIEWPORT -> DRAWLINE/DRAWTRI -> FRAGSHADER
-
+        
+        void MSAA_rasterize_triangle(const Triangle& t);
     private:
         Eigen::Matrix4f model;
         Eigen::Matrix4f view;
@@ -99,5 +100,9 @@ namespace rst
 
         int next_id = 0;
         int get_next_id() { return next_id++; }
+
+        
+        std::vector<std::array<Eigen::Vector3f, 2*2>> MSAA_frame_buf;// 维护一个采样列表，如果其中有一个点在三角形内，则将颜色取对应比例
+        std::vector<std::array<float, 2*2>> MSAA_depth_buf;//维护每个采样点的深度信息
     };
 }
