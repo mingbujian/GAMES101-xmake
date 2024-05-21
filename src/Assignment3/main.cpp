@@ -50,7 +50,40 @@ Eigen::Matrix4f get_model_matrix(float angle)
 Eigen::Matrix4f get_projection_matrix(float eye_fov, float aspect_ratio, float zNear, float zFar)
 {
     // TODO: Use the same projection matrix from the previous assignments
+     zNear = -zNear;
+     zFar = -zFar;
+    
+    Eigen::Matrix4f projection = Eigen::Matrix4f::Identity();
 
+    // TODO: Implement this function
+    // Create the projection matrix for the given parameters.
+    // Then return it.
+    Eigen::Matrix4f perspective;//透视投影
+    perspective << zNear, 0, 0, 0
+                , 0, zNear, 0, 0
+                , 0, 0, zNear + zFar, -1*zNear*zFar
+                , 0, 0, 1, 0;
+
+    float height = 2*std::tan(eye_fov/2)*std::fabs(zNear);
+    float width = aspect_ratio * height;
+
+    Eigen::Matrix4f orthographic;//正交投影
+
+    Eigen::Matrix4f transform;//正交投影需要先移动到原点
+    transform << 1, 0, 0, 0
+        , 0, 1, 0, 0
+        , 0, 0, 1, -(zNear + zFar) / 2
+        , 0, 0, 0, 1;
+
+    Eigen::Matrix4f Scale;  // 缩放[-1,1]，y[-1,1]，z[-1,1] NDC空间(归一化的设备坐标)
+    Scale << 2/width, 0, 0, 0
+                    , 0, 2/height, 0, 0
+                    , 0, 0, 2/(zFar-zNear), -(zFar+zNear)/2
+                    , 0, 0, 0, 1;
+                    
+    orthographic = Scale * transform;
+    projection = orthographic * perspective * projection;
+    return projection;
 }
 
 Eigen::Vector3f vertex_shader(const vertex_shader_payload& payload)
@@ -271,7 +304,8 @@ int main(int argc, const char** argv)
     auto texture_path = "hmap.jpg";
     r.set_texture(Texture(obj_path + texture_path));
 
-    std::function<Eigen::Vector3f(fragment_shader_payload)> active_shader = phong_fragment_shader;
+    std::function<Eigen::Vector3f(fragment_shader_payload)> active_shader = normal_fragment_shader;
+    //std::function<Eigen::Vector3f(fragment_shader_payload)> active_shader = phong_fragment_shader;
 
     if (argc >= 2)
     {

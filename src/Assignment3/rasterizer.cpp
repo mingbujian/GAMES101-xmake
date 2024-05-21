@@ -265,22 +265,93 @@ void rst::rasterizer::rasterize_triangle(const Triangle& t, const std::array<Eig
     //    * Z is interpolated view space depth for the current pixel
     //    * zp is depth between zNear and zFar, used for z-buffer
 
-    // float Z = 1.0 / (alpha / v[0].w() + beta / v[1].w() + gamma / v[2].w());
-    // float zp = alpha * v[0].z() / v[0].w() + beta * v[1].z() / v[1].w() + gamma * v[2].z() / v[2].w();
-    // zp *= Z;
+    std::array<Vector4f, 3> v = t.toVector4();//这个不应该用到吧？应该用t.v
 
-    // TODO: Interpolate the attributes:
-    // auto interpolated_color
-    // auto interpolated_normal
-    // auto interpolated_texcoords
-    // auto interpolated_shadingcoords
+    auto Interpolate_vec3f = [&t](float x, float y, Eigen::Vector3f A, Eigen::Vector3f B, Eigen::Vector3f C) {
+            // 透视投影矫正：https://zhuanlan.zhihu.com/p/698697855?
+            auto [alpha, beta, gamma] = computeBarycentric2D(x, y, t.v);//屏幕空间的重心坐标
+            float K = 1.0 / (alpha / t.v[0].w() + beta / t.v[1].w() + gamma / t.v[2].w()); 
+            
+            Eigen::Vector3f P = (alpha / t.v[0].w()) * A + (beta / t.v[1].w()) * B + (gamma / t.v[2].w()) * C;
+            P = K * P;
+            return P;
+        };
 
-    // Use: fragment_shader_payload payload( interpolated_color, interpolated_normal.normalized(), interpolated_texcoords, texture ? &*texture : nullptr);
-    // Use: payload.view_pos = interpolated_shadingcoords;
-    // Use: Instead of passing the triangle's color directly to the frame buffer, pass the color to the shaders first to get the final color;
-    // Use: auto pixel_color = fragment_shader(payload);
+    auto Interpolate_vec2f = [&t](float x, float y, Eigen::Vector2f A, Eigen::Vector2f B, Eigen::Vector2f C) {
+        // 透视投影矫正：https://zhuanlan.zhihu.com/p/698697855?
+        auto [alpha, beta, gamma] = computeBarycentric2D(x, y, t.v);//屏幕空间的重心坐标
+        float K = 1.0 / (alpha / t.v[0].w() + beta / t.v[1].w() + gamma / t.v[2].w());
 
- 
+        Eigen::Vector2f P = (alpha / t.v[0].w()) * A + (beta / t.v[1].w()) * B + (gamma / t.v[2].w()) * C;
+        P = K * P;
+        return P;
+        };
+
+    auto Vec_Min = [](Eigen::Vector4f left, Eigen::Vector4f right) {
+        return Eigen::Vector4f(std::min(left.x(), right.x())
+            , std::min(left.y(), right.y())
+            , std::min(left.z(), right.z())
+            , std::min(left.w(), right.w()));
+        };
+
+    auto Vec_Max = [](Eigen::Vector4f left, Eigen::Vector4f right) {
+        return Eigen::Vector4f(std::max(left.x(), right.x())
+            , std::max(left.y(), right.y())
+            , std::max(left.z(), right.z())
+            , std::max(left.w(), right.w()));
+        };
+     
+    Eigen::Vector4f AABB_Min = Vec_Min(Vec_Min(t.v[0], t.v[1]), t.v[2]);
+    Eigen::Vector4f AABB_Max = Vec_Max(Vec_Max(t.v[0], t.v[1]), t.v[2]);
+
+    for (int32_t x = AABB_Min.x(); x < AABB_Max.x(); ++x)
+    {
+        for (int32_t y = AABB_Min.y(); y < AABB_Max.y(); ++y)
+        {
+            float pixel_center_x = (float)x + 0.5;
+            float pixel_center_y = (float)y + 0.5;
+
+            if (!insideTriangle(pixel_center_x, pixel_center_y, t.v))
+            {
+                continue;
+            }
+
+            //z-buffer插值
+            auto [alpha, beta, gamma] = computeBarycentric2D(pixel_center_x, pixel_center_y, t.v);
+            float w_reciprocal = 1.0 / (alpha / v[0].w() + beta / v[1].w() + gamma / v[2].w());
+            float z_interpolated = alpha * v[0].z() / v[0].w() + beta * v[1].z() / v[1].w() + gamma * v[2].z() / v[2].w();
+            z_interpolated *= w_reciprocal;
+
+            auto isLessThan = [](float a, float b) {
+                const float epsilon = 1e-5f;
+                return a + epsilon < b;
+                };
+
+            if (isLessThan(z_interpolated, depth_buf[get_index(x, y)]))
+            {
+                // TODO : set the current pixel (use the set_pixel function) to the color of the triangle (use getColor function) 
+                // if it should be painted.
+                depth_buf[get_index(x, y)] = z_interpolated;
+
+                // 颜色插值
+                Eigen::Vector3f interpolated_color = {255,0,0};// Interpolate_vec3f(pixel_center_x, pixel_center_y, t.color[0], t.color[1], t.color[2]);
+                // 法向量插值
+                Eigen::Vector3f interpolated_normal = Interpolate_vec3f(pixel_center_x, pixel_center_y, t.normal[0], t.normal[1], t.normal[2]);
+                // 纹理颜色插值
+                Eigen::Vector2f interpolated_texcoords = Interpolate_vec2f(pixel_center_x, pixel_center_y, t.tex_coords[0], t.tex_coords[1], t.tex_coords[2]);
+
+                // 内部点位置插值
+                Eigen::Vector3f interpolated_shadingcoords = Interpolate_vec3f(pixel_center_x, pixel_center_y, view_pos[0], view_pos[1], view_pos[2]);
+        
+                fragment_shader_payload payload(interpolated_color, interpolated_normal.normalized(), interpolated_texcoords, texture ? &*texture : nullptr);
+                payload.view_pos = interpolated_shadingcoords;
+
+                auto pixel_color = fragment_shader(payload);
+                Eigen::Vector2i point{x, y};
+                set_pixel(point, pixel_color);
+            }
+        }
+    }
 }
 
 void rst::rasterizer::set_model(const Eigen::Matrix4f& m)
