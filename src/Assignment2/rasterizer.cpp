@@ -115,8 +115,8 @@ void rst::rasterizer::draw(pos_buf_id pos_buffer, ind_buf_id ind_buffer, col_buf
         t.setColor(1, col_y[0], col_y[1], col_y[2]);
         t.setColor(2, col_z[0], col_z[1], col_z[2]);
 
-        //rasterize_triangle(t);
-        MSAA_rasterize_triangle(t);
+        rasterize_triangle(t);
+        //MSAA_rasterize_triangle(t);
     }
 }
 
@@ -142,9 +142,9 @@ void rst::rasterizer::rasterize_triangle(const Triangle& t) {
 
 
 
-    for(int32_t x = std::round(AABB_Min.x()); x < std::round(AABB_Max.x()); ++x)
+    for(int32_t x = (AABB_Min.x()); x < (AABB_Max.x()); ++x)
     {
-        for(int32_t y = std::round(AABB_Min.y()); y < std::round(AABB_Max.y()); ++y)
+        for(int32_t y = (AABB_Min.y()); y < (AABB_Max.y()); ++y)
         {
             if(!insideTriangle(x, y, t.v))
             {
@@ -299,26 +299,27 @@ void rst::rasterizer::MSAA_rasterize_triangle(const Triangle& t) {
             return a + epsilon < b;
         };
     
-    for(int32_t x = std::round(AABB_Min.x()); x < std::round(AABB_Max.x()); ++x)
+    for(int32_t x = (AABB_Min.x()); x < (AABB_Max.x()); ++x)
     {
-        for(int32_t y = std::round(AABB_Min.y()); y < std::round(AABB_Max.y()); ++y)
+        for(int32_t y = (AABB_Min.y()); y < (AABB_Max.y()); ++y)
         {
             int32_t index = 0;
             for(float msaa_x = x; isLessThan(msaa_x, x+1.0); msaa_x+=(1.0/Frequence))
             for(float msaa_y = y; isLessThan(msaa_y, y+1.0); msaa_y+=(1.0/Frequence))
             {
-                if(!MSAA_insideTriangle(msaa_x+MSAA_center, msaa_y+MSAA_center, t.v))
+                float pixel_center_x = msaa_x+MSAA_center;
+                float pixel_center_y = msaa_y+MSAA_center;
+
+
+                if(!MSAA_insideTriangle(pixel_center_x, pixel_center_y, t.v))
                 {
                     continue;
                 }
 
-                //std::cout << "111" << std::endl;
-
-                auto[alpha, beta, gamma] = computeBarycentric2D(msaa_x, msaa_y, t.v);
+                auto[alpha, beta, gamma] = computeBarycentric2D(pixel_center_x, pixel_center_y, t.v);
                 float w_reciprocal = 1.0/(alpha / v[0].w() + beta / v[1].w() + gamma / v[2].w());
                 float z_interpolated = alpha * v[0].z() / v[0].w() + beta * v[1].z() / v[1].w() + gamma * v[2].z() / v[2].w();
                 z_interpolated *= w_reciprocal;
-
             
                 if(isLessThan(z_interpolated, MSAA_depth_buf[get_index(x,y)][index]))
                 {
