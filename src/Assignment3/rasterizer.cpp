@@ -334,7 +334,7 @@ void rst::rasterizer::rasterize_triangle(const Triangle& t, const std::array<Eig
                 depth_buf[get_index(x, y)] = z_interpolated;
 
                 // 颜色插值
-                Eigen::Vector3f interpolated_color = {255,0,0};// Interpolate_vec3f(pixel_center_x, pixel_center_y, t.color[0], t.color[1], t.color[2]);
+                Eigen::Vector3f interpolated_color = Interpolate_vec3f(pixel_center_x, pixel_center_y, t.color[0], t.color[1], t.color[2]);
                 // 法向量插值
                 Eigen::Vector3f interpolated_normal = Interpolate_vec3f(pixel_center_x, pixel_center_y, t.normal[0], t.normal[1], t.normal[2]);
                 // 纹理颜色插值
