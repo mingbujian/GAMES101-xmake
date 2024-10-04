@@ -4,6 +4,7 @@
 #include "Scene.hpp"
 #include <optional>
 
+// 度数转弧度 degree to radian
 inline float deg2rad(const float &deg)
 { return deg * M_PI/180.0; }
 
@@ -216,7 +217,7 @@ void Renderer::Render(const Scene& scene)
     float imageAspectRatio = scene.width / (float)scene.height;
 
     // Use this variable as the eye position to start your rays.
-    Vector3f eye_pos(0);
+    Vector3f eye_pos(0,0,0);
     int m = 0;
     for (int j = 0; j < scene.height; ++j)
     {
@@ -228,9 +229,43 @@ void Renderer::Render(const Scene& scene)
             // TODO: Find the x and y positions of the current pixel to get the direction
             // vector that passes through it.
             // Also, don't forget to multiply both of them with the variable *scale*, and
-            // x (horizontal) variable with the *imageAspectRatio*            
+            // x (horizontal) variable with the *imageAspectRatio*   
+            // 
+            /*
+            * 这个是一个简单的实现，观测点在0位置，观察方向是z的-1方向，正常的应该就是要做各种逆变换，因为改变观察点位置，以及观察方向，还能不能正确呢？！！！
+            其实有一个隐含的量没有算进去，dir归一化之前的z值是-1，也就是摄像机离“屏幕”所在的距离是1，最终根据fov和aspectRatio算出“屏幕”的高度其实是h' = scale * |z| * 2，宽度是w' = scale * imageAspectRatio * |z| * 2；
 
-            Vector3f dir = Vector3f(x, y, -1); // Don't forget to normalize this direction!
+            因为要假定这个“屏幕”的中心是在(0,0,z)(ps:因为相机的坐标是(0,0,0))，所以要将这个屏幕平移（-w'/2, -h'/2），最后你会得到一个[-w'/2, -h'/2] ~[w'/2, h'/2]的“屏幕”空间，然后建立一个从像素空间([0,0]~[w,h])到“屏幕”空间([-w'/2, -h'/2] ~[w'/2, h'/2])的映射，这个映射就是(i,j)到(x,y)的变化。
+            */
+
+            // 1、像素空间 到 屏幕空间  到 [-1,1]NDC坐标空间
+            // 屏幕投射的 逆变换
+            x = 2.0f * (i + 0.5) / scene.width - 1;
+            y = 2.0f * (j + 0.5) / scene.height - 1;
+
+            // 由于作业5中（0,0）点在屏幕的左上角，乘以-1，使其从左下角开始
+            y = -1 * y;
+
+            // 在上面的投射中，x和y不是等比例缩放的，所以在[-1,1]中不再是正方形了，调整x 或者调整y都可以
+            x = x * imageAspectRatio;// 如果调整y，y = y / imageAspectRatio;
+            //y = y / imageAspectRatio;
+
+            // 2、NDC坐标空间 到 相机空间（正交投影的逆，透视投影的逆）
+            // 1）在透视投影中，近平面的点，不会发生变化
+
+            // 3、正交投影的逆
+            // （1）由于观察点是（0，0，0），
+            // （2）从下面观察点坐标(x, y, -1)知道，观察点到屏幕的距离是 1
+
+            // 3、相机空间 到 世界空间，由于观察点到屏幕的距离也是1，刚好就是NDC空间的大小
+            // （1）改变fov的值，观察图形的变化
+            // （2）
+            x = x * scale;
+            y = y * scale;
+
+            //float znear = scene.height / (2 * scale);
+            Vector3f dir = normalize(Vector3f(x, y, -1)); // Don't forget to normalize this direction!
+
             framebuffer[m++] = castRay(eye_pos, dir, scene, 0);
         }
         UpdateProgress(j / (float)scene.height);
