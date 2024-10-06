@@ -5,7 +5,8 @@
 #include <fstream>
 #include "Scene.hpp"
 #include "Renderer.hpp"
-
+#include <optional>
+#include "Vector.hpp"
 
 inline float deg2rad(const float& deg) { return deg * M_PI / 180.0; }
 
@@ -25,9 +26,15 @@ void Renderer::Render(const Scene& scene)
     for (uint32_t j = 0; j < scene.height; ++j) {
         for (uint32_t i = 0; i < scene.width; ++i) {
             // generate primary ray direction
+            //
+            // (不对呀，奇怪？)其实就是将屏幕放到相机前面
+            // 1、乘以 imageAspectRatio 的原因：将x,y变成正方形；
+            // 2、乘以 scale = tan(deg2rad(scene.fov * 0.5))的原因：默认将屏幕放在相机前面 1 个单位的距离前面，将已经变换为[-1,1]空间的x,y，拉伸为相机前面 1 个单位距离的屏幕，刚好就是 1 * tan(deg2rad(scene.fov * 0.5)) 的大小。
+            // 
             float x = (2 * (i + 0.5) / (float)scene.width - 1) *
                       imageAspectRatio * scale;
             float y = (1 - 2 * (j + 0.5) / (float)scene.height) * scale;
+
             // TODO: Find the x and y positions of the current pixel to get the
             // direction
             //  vector that passes through it.
@@ -36,6 +43,17 @@ void Renderer::Render(const Scene& scene)
 
             // Don't forget to normalize this direction!
 
+            // 由于眼睛在世界空间的eye_pos位置，相机屏幕前 1 个单位是屏幕
+            Vector3f Translation = eye_pos + (0, 0, -1);
+
+            Vector3f Direction(x, y, -1);
+            Direction = Direction;// +Translation;
+
+            Direction = normalize(Direction);
+
+            double TransportationTime = 0.0f;
+            Ray ray(eye_pos, Direction, TransportationTime);
+            framebuffer[m++] = scene.castRay(ray, 0);
         }
         UpdateProgress(j / (float)scene.height);
     }

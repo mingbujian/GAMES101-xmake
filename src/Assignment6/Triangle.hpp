@@ -214,27 +214,53 @@ inline Intersection Triangle::getIntersection(Ray ray)
 
     if (dotProduct(ray.direction, normal) > 0)
         return inter;
+
     double u, v, t_tmp = 0;
-    Vector3f pvec = crossProduct(ray.direction, e2);
-    double det = dotProduct(e1, pvec);
+    Vector3f pvec = crossProduct(ray.direction, e2);//S1
+    double det = dotProduct(e1, pvec);  //
     if (fabs(det) < EPSILON)
         return inter;
 
-    double det_inv = 1. / det;
-    Vector3f tvec = ray.origin - v0;
-    u = dotProduct(tvec, pvec) * det_inv;
+    double det_inv = 1. / det;              // 1 / (dotProduct(S1, E1))
+    Vector3f tvec = ray.origin - v0;        // S
+    u = dotProduct(tvec, pvec) * det_inv;   // y值
     if (u < 0 || u > 1)
         return inter;
-    Vector3f qvec = crossProduct(tvec, e1);
-    v = dotProduct(ray.direction, qvec) * det_inv;
+
+    Vector3f qvec = crossProduct(tvec, e1); // S2
+    v = dotProduct(ray.direction, qvec) * det_inv;  // z值
     if (v < 0 || u + v > 1)
         return inter;
-    t_tmp = dotProduct(e2, qvec) * det_inv;
+
+    t_tmp = dotProduct(e2, qvec) * det_inv; // x值
 
     // TODO find ray triangle intersection
+    // 克莱姆法则算的
+    /*
+    Vector3f E1 = v1 - v0;
+    Vector3f E2 = v2 - v0;
+    Vector3f S = orig - v0;
+    Vector3f S1 = crossProduct(dir, E2);
+    Vector3f S2 = crossProduct(S, E1);
 
+    Vector3f Result = 1 / (dotProduct(S1, E1)) * Vector3f(dotProduct(S2,E2),dotProduct(S1, S), dotProduct(S2,dir));
+    tnear = Result.x;
+    u = Result.y;
+    v = Result.z;
 
+    return tnear > 0 && u >= 0.f && v >= 0.f && 1 - u - v >= 0.f;
+    */
 
+    float tnear = t_tmp;
+    if (tnear > 0 && u >= 0.f && v >= 0.f && 1 - u - v >= 0.f)//相交
+    {
+        inter.happened = true;
+        inter.coords = ray.origin + tnear * ray.direction;
+        inter.normal = normal;
+        inter.distance = tnear;
+        inter.obj = this;
+        inter.m = this->m;
+    }
 
     return inter;
 }

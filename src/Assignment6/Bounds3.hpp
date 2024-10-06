@@ -96,7 +96,31 @@ inline bool Bounds3::IntersectP(const Ray& ray, const Vector3f& invDir,
     // invDir: ray direction(x,y,z), invDir=(1.0/x,1.0/y,1.0/z), use this because Multiply is faster that Division
     // dirIsNeg: ray direction(x,y,z), dirIsNeg=[int(x>0),int(y>0),int(z>0)], use this to simplify your logic
     // TODO test if ray bound intersects
-    
+
+    // 与y,z平面平行的near,far两个平面
+    // Vector3f Destination = ray.origin + time * invDir;
+    float NearTime = (pMin.x - ray.origin.x) / invDir.x;
+    float FarTime = (pMax.x - ray.origin.x) / invDir.x;
+    float XTimeMin = std::min(NearTime, FarTime);
+    float XTimeMax = std::max(NearTime, FarTime);
+
+    // 与x,z平面平行的top,bottom两个平面
+    float BottomTime = (pMin.y - ray.origin.y) / invDir.y;
+    float TopTime = (pMax.y - ray.origin.y) / invDir.y;
+    float YTimeMin = std::min(BottomTime, TopTime);
+    float YTimeMax = std::max(BottomTime, TopTime);
+
+    // 与x,y平面平行的Left,Right两个平面
+    float LeftTime = (pMin.z - ray.origin.z) / invDir.z;
+    float RightTime = (pMax.z - ray.origin.z) / invDir.z;
+    float ZTimeMin = std::min(LeftTime, RightTime);
+    float ZTimeMax = std::max(LeftTime, RightTime);
+
+    // 求enter和exit的时间
+    float Enter = std::max(XTimeMin, std::max(YTimeMin, ZTimeMin));
+    float Exit = std::min(XTimeMax, std::min(YTimeMax, ZTimeMax));
+
+    return Enter < Exit && Exit >= 0;
 }
 
 inline Bounds3 Union(const Bounds3& b1, const Bounds3& b2)
