@@ -198,6 +198,7 @@ public:
     void Sample(Intersection &pos, float &pdf){
         bvh->Sample(pos, pdf);
         pos.emit = m->getEmission();
+        pos.m = m;//By myself
     }
     float getArea(){
         return area;
@@ -253,6 +254,17 @@ inline Intersection Triangle::getIntersection(Ray ray)
     t_tmp = dotProduct(e2, qvec) * det_inv;
 
     // TODO find ray triangle intersection
+
+    float tnear = t_tmp;
+    if (tnear > 0 && u >= 0.f && v >= 0.f && 1 - u - v >= 0.f)//Ïà½»
+    {
+        inter.happened = true;
+        inter.coords = ray.origin + tnear * ray.direction;
+        inter.normal = normal;
+        inter.distance = tnear;
+        inter.obj = this;
+        inter.m = this->m;
+    }
 
     return inter;
 }

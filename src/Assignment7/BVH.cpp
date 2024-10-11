@@ -108,7 +108,32 @@ Intersection BVHAccel::Intersect(const Ray& ray) const
 Intersection BVHAccel::getIntersection(BVHBuildNode* node, const Ray& ray) const
 {
     // TODO Traverse the BVH to find intersection
-    return {};
+    // 是否和节点有相交
+    std::array<int, 3> dirIsNeg;
+    dirIsNeg[0] = (int)(ray.direction.x > 0);
+    dirIsNeg[1] = (int)(ray.direction.y > 0);
+    dirIsNeg[2] = (int)(ray.direction.z > 0);
+    if (!node->bounds.IntersectP(ray, ray.direction, dirIsNeg))
+    {
+        // 不相交
+        return Intersection();
+    }
+
+    // 相交，判断当前节点是不是叶子节点
+
+    // 叶子节点
+    if (node->left == nullptr && node->right == nullptr)
+    {
+        // 判断节点里的对象与光线相交，返回离相机最近的一个交点
+        Intersection intersection = node->object->getIntersection(ray);
+        return intersection;
+    }
+
+    // 左子节点相交
+    Intersection LeftIntersection = getIntersection(node->left, ray);
+    Intersection RightIntersection = getIntersection(node->right, ray);
+
+    return LeftIntersection.distance < RightIntersection.distance ? LeftIntersection : RightIntersection;
 }
 
 
