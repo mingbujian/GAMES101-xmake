@@ -48,6 +48,8 @@ int main(int argc, char **argv) {
     }
   }
 
+  config.steps_per_frame = 32;
+
   // create application
   Application *app = new Application(config);
 
