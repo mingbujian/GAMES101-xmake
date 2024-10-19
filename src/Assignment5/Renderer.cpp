@@ -222,7 +222,11 @@ void Renderer::Render(const Scene& scene)
     for (int j = 0; j < scene.height; ++j)
     {
         for (int i = 0; i < scene.width; ++i)
-        {
+        {            
+            // (不对呀，奇怪？)其实就是将屏幕放到相机前面
+            // 1、乘以 imageAspectRatio 的原因：将x,y变成正方形；
+            // 2、乘以 scale = tan(deg2rad(scene.fov * 0.5))的原因：默认将屏幕放在相机前面 1 个单位的距离前面，将已经变换为[-1,1]空间的x,y，拉伸为相机前面 1 个单位距离的屏幕，刚好就是 1 * tan(deg2rad(scene.fov * 0.5)) 的大小。
+            // 
             // generate primary ray direction
             float x;
             float y;
