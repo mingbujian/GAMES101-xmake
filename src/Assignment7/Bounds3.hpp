@@ -120,7 +120,7 @@ inline bool Bounds3::IntersectP(const Ray& ray, const Vector3f& invDir,
     float Enter = std::max(XTimeMin, std::max(YTimeMin, ZTimeMin));
     float Exit = std::min(XTimeMax, std::min(YTimeMax, ZTimeMax));
 
-    return Enter < Exit && Exit >= 0;
+    return Enter <= Exit && Exit >= 0;
 }
 
 inline Bounds3 Union(const Bounds3& b1, const Bounds3& b2)
